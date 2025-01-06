@@ -18,7 +18,7 @@ services:
     networks:
       - mern_network
     environment:
-      VITE_API_URL: http://54.225.4.93:5050
+      VITE_API_URL: http://54.227.166.177:5050
 
   mongodb:
     image: mongo:latest  
