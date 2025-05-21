@@ -25,20 +25,13 @@ services:
       - mern_network
     environment:
       VITE_API_URL: http://3.91.218.109:5050
-    frontend:
-    build: ./mern/frontend
-    ports:
-      - "5173:5173"  
-    networks:
-      - mern_network
-    environment:
-      VITE_API_URL: http://54.227.166.177:5050
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 10s
+    
     
 
 
@@ -57,5 +50,5 @@ networks:
 
 volumes:
   mongo-data:
-    driver: local
+    driver: local  # Persist MongoDB data locally
 
