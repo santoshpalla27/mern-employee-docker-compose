@@ -9,6 +9,10 @@ app.use(cors());
 app.use(express.json());
 app.use("/record", records);
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // start the Express server
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
