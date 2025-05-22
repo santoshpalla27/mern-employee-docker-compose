@@ -10,23 +10,14 @@ services:
     depends_on:
       - mongodb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/startup"]
+      test: |
+        curl -f http://localhost:5050/startup &&
+        curl -f http://localhost:5050/ready &&
+        curl -f http://localhost:5050/health
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 10s
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/ready"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
+      start_period: 40s
 
 
   frontend:
