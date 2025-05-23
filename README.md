@@ -359,3 +359,31 @@ third case
                   number: 5050
 
 and the app uses /record in the code hardcoded then the base url will be just domain http://domain.com since the app uses http://domain.com/record which is hard codded in backend then request goes to the /record that is backend
+
+
+nginx config in kubernetes
+
+location /api/ {
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+}
+
+location /api/ {
+    proxy_pass http://backend-service:5050; # for http://backend-service:5050/api call
+}
+
+backend-service is used internally by NGINX to reach your backend so the nginx config can still communicate with the backend even if fontend is static in browser
+
+
+
+frontend is Static — Doesn't Matter
+Even if your frontend is:
+
+Hosted on S3
+
+Served from NGINX itself
+
+Static React/Angular build
+
+→ it doesn't matter, because the browser only talks to http://domain.com/api/..., and NGINX internally talks to http://backend-service:5050.
+
+The static frontend doesn't need access to backend-service — NGINX handles the internal routing for API calls.
