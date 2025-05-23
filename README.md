@@ -268,3 +268,94 @@ Resulting Behavior
 | `https://domain/api/record`    | ✅        | `/record`                      |
 | `https://domain/api/user/data` | ✅        | `/user/data`                   |
 | `https://domain/apisomething`  | ❌        | (not matched)                  |
+
+
+
+
+
+How to fix it?
+Set VITE_API_URL to the root domain only:
+
+
+VITE_API_URL=https://santosh.website
+Then your frontend app calling
+
+
+`${import.meta.env.VITE_API_URL}/record/${params.id}`
+will produce:
+
+
+https://santosh.website/record/{id}
+which matches your Ingress path /record correctly.
+
+
+
+
+========================
+
+
+final conclution :- if the base url is http://ip:port/api then the ingress will be 
+
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+  then final url will be http://domain/api and /api is where the backend is and nginx proxy will be 
+
+
+location /api/ {
+    proxy_pass http://44.201.204.19:5050;
+}
+
+========
+
+and if the app has hardcoded api path then the api url will be http://domain:port and rest will be in app like http://base-url/api 
+
+then the ingress will be 
+
+paths:
+- path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
+  backend:
+    service:
+      name: backend
+      port:
+        number: 5050
+
+the base url will be http://domain/api which will direct to http://domain/
+
+and the nginx conf will be 
+
+location /api/ {
+    proxy_pass http://44.201.204.19:5050/;  # with / which will direct the requests without /api
+ }
+
+
+Final public base URL (what the frontend uses) is: http://domain/api
+
+What happens under the hood:
+User hits: http://domain/api/record
+
+NGINX ingress strips /api prefix before forwarding to backend
+
+Backend receives request as /record (no /api prefix)
+
+Backend routes like /record, /record/123 work normally (no /api in paths)
+
+===============
+
+third case 
+
+- path: /record
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+and the app uses /record in the code hardcoded then the base url will be just domain http://domain.com since the app uses http://domain.com/record which is hard codded in backend then request goes to the /record that is backend
