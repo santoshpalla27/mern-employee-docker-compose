@@ -76,3 +76,14 @@ the vite_api_url should be included in dockerfile because once we run npm build 
 docker build \
   --build-arg VITE_API_URL=http://44.201.204.19:5050 \
   -t my-frontend-app .
+
+
+location /api/ {
+            proxy_pass http://44.201.204.19:5050/;                  using of / removes prefix mean the api call goes without using /api instead of http://domain.com/api/record  api call goes http://domain.com/record
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
