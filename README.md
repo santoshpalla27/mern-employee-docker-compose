@@ -87,3 +87,184 @@ location /api/ {
             proxy_cache_bypass $http_upgrade;
         }
     }
+
+
+
+    # With trailing slash - REMOVES /api prefix
+location /api/ {
+    proxy_pass http://44.201.204.19:5050/;
+    # /api/record → http://44.201.204.19:5050/record
+}
+
+# Without trailing slash - KEEPS /api prefix  
+location /api/ {
+    proxy_pass http://44.201.204.19:5050;
+    # /api/record → http://44.201.204.19:5050/api/record
+}
+
+
+with api the base url will be http://44.201.204.19:5050/api 
+
+with api prefix the base url will be http://44.201.204.19:5050
+
+the ingress will be 
+
+          - path: /record
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+then the backend base url will be http://domain/record
+
+
+with api prefix the base url 
+
+          - path: /api/record
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+then the backend base url will be http://domain/api/record
+
+
+
+imagine a secnario 
+
+my app expects the base url to be http://domain:port with the below ingress i made the base url as http://santosh.website/record/ 
+
+so the nginx proxy will be 
+
+    # With trailing slash - REMOVES /api prefix
+location /api/ {
+    proxy_pass http://44.201.204.19:5050/;
+    # /api/record → http://44.201.204.19:5050/record
+}
+
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: three-tier-app
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing 
+    alb.ingress.kubernetes.io/target-type: ip 
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]' # Added HTTPS
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:537124971455:certificate/1b7675d8-3da9-4022-b498-9ca7e31e27e1 # Added ACM certificate
+    alb.ingress.kubernetes.io/ssl-redirect: "443" # Redirect HTTP to HTTPS
+spec:
+  ingressClassName: alb
+  rules:
+    - host: santosh.website
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 5173
+          - path: /record
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+
+
+what will be the ingress and nginx proxy if my app base url is http://domain:port/api
+
+ 1. NGINX Proxy
+You should preserve the /api prefix and not strip it in the proxy_pass directive.
+
+# PRESERVES /api prefix
+location /api/ {
+    proxy_pass http://44.201.204.19:5050/api/;
+    # /api/record → http://44.201.204.19:5050/api/record
+}
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  namespace: three-tier-app
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing 
+    alb.ingress.kubernetes.io/target-type: ip 
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:537124971455:certificate/1b7675d8-3da9-4022-b498-9ca7e31e27e1
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: santosh.website
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 5173
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5050
+
+
+VITE_API_BASE_URL=https://santosh.website/api
+
+
+
+
+
+paths:
+- path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
+  backend:
+    service:
+      name: backend
+      port:
+        number: 5050
+
+
+| Incoming Request Path | Matched? | Captured in `(.*)` |
+| --------------------- | -------- | ------------------ |
+| `/api`                | ✅        | `""`               |
+| `/api/`               | ✅        | `""`               |
+| `/api/record`         | ✅        | `record`           |
+| `/api/record/data`    | ✅        | `record/data`      |
+| `/apisomething`       | ❌        | —                  |
+
+
+use with 
+
+annotations:
+  nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+
+
+Resulting Behavior
+
+| Public Request URL             | Matched? | Rewritten path sent to backend |
+| ------------------------------ | -------- | ------------------------------ |
+| `https://domain/api`           | ✅        | `/`                            |
+| `https://domain/api/`          | ✅        | `/`                            |
+| `https://domain/api/record`    | ✅        | `/record`                      |
+| `https://domain/api/user/data` | ✅        | `/user/data`                   |
+| `https://domain/apisomething`  | ❌        | (not matched)                  |
