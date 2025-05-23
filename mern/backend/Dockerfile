@@ -3,16 +3,11 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies with cache optimization
-RUN npm ci --only=production --silent && \
-    npm cache clean --force
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -29,7 +24,6 @@ RUN apk update && apk upgrade && \
     rm -rf /var/cache/apk/*
 
 # Copy built application from builder stage
-COPY --from=builder /app/build /usr/share/nginx/html
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy custom Nginx configuration
@@ -54,10 +48,6 @@ USER nginx_user
 
 # Expose port
 EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
