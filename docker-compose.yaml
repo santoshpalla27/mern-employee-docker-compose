@@ -9,15 +9,15 @@ services:
       MONGO_URI: mongodb://mongodb:27017
     depends_on:
       - mongodb
-    healthcheck:
-      test: |
-        curl -f http://localhost:5050/startup &&
-        curl -f http://localhost:5050/ready &&
-        curl -f http://localhost:5050/health
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+    # healthcheck:
+    #   test: |
+    #     curl -f http://localhost:5050/startup &&
+    #     curl -f http://localhost:5050/ready &&
+    #     curl -f http://localhost:5050/health
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 40s
 
 
   frontend:
@@ -27,13 +27,13 @@ services:
     networks:
       - mern_network
     environment:
-      VITE_API_URL: http://3.91.218.109:5050
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
+      VITE_API_URL: http://3.89.120.20:5050
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 10s
     
     
 
