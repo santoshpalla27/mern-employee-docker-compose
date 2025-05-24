@@ -411,6 +411,11 @@ location /api/ {
     proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
 }
 
+
+location /api/ # this should match with the starting call of api in the frontend   {
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+}
+
 backend code
  app.get('/api/mysql/users', async (req, res) => {
     try {
@@ -442,5 +447,11 @@ export const fetchMySQLUsers = () => {
 
 because the backend code already has /api in its route so we cut in processing and if it does have /api in its backend and has in frontend then the url will be same without rewriting in nginx config and ingress
 
+location /api/ # this should match with the starting call of api in the frontend   { 
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+
+
+and the the / after the proxy depends the backend that has /api in the start or not  
+}
 
 in most cases they use /api but there can be cases where the /api will be different then the ingress and the nginx config will be same as what /api is changed with
