@@ -560,3 +560,95 @@ paths:
         number: 5050
 
 the frontend url for backend will be http://backend-service:5050/api but the calls will go the backend without api in it http://backend-service:5050/
+
+
+
+last scenario if there is no prefix in either frontend and backend 
+
+backend code 
+
+router.post("/", async (req, res) => {
+  try {
+    let newDocument = {
+      name: req.body.name,
+      position: req.body.position,
+      level: req.body.level,
+    };
+    let collection = await db.collection("records");
+    let result = await collection.insertOne(newDocument);
+    res.send(result).status(204);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error adding record");
+  }
+});
+
+
+fontend code
+
+if (isNew) {
+        // if we are adding a new record we will POST to /record.
+        response = await fetch(`${import.meta.env.VITE_API_URL}/record` ,{                      # this expects http://domain or http://ip:port 
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(person),
+        });
+
+
+this expects http://domain or http://ip:port 
+
+
+then we will use 
+
+location / {                                          # / to route all requests with /
+        proxy_pass http://localhost:5050;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: records-api-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+  - host: records.example.com
+    http:
+      paths:
+      - path: /(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: records-api-service
+            port:
+              number: 80
+
+
+separate domain with prefix for backend 
+
+=======
+
+ BUT — if you're using a reverse proxy (like Nginx, Ingress, API Gateway, etc.), then:
+You can change the path between frontend and backend as long as the proxy rewrites it accordingly.
+
+🔧 Example:
+Frontend calls:
+/api/users
+
+Backend defines route:
+/users ← no /api
+
+Nginx handles it like this:
+
+location /api/ {
+    rewrite ^/api/(.*)$ /$1 break;
+    proxy_pass http://backend-service:5050/;
+}
+
