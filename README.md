@@ -455,3 +455,108 @@ and the the / after the proxy depends the backend that has /api in the start or 
 }
 
 in most cases they use /api but there can be cases where the /api will be different then the ingress and the nginx config will be same as what /api is changed with
+
+
+
+location /api/ {
+    rewrite ^/api/(.*)$ /$1 break;
+    proxy_pass http://backend-service:5050/;
+}
+
+
+=================================================
+
+            final verdict
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; # backend url 
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+export const fetchMySQLUsers = () => {
+  return api.get('/api/mysql/users');
+};
+
+the frontend api call will be the location of nginx config and if the starting exist in the backend no / or rewrite is requied but if doesn't exist rewite or / needed in nginx config and ingress 
+
+location /api/ {
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+}
+
+backend code
+ app.get('/api/mysql/users', async (req, res) => {
+    try {
+      const [rows] = await mysqlPool.query('SELECT * FROM users');
+      res.json(rows);
+    } catch (err) {
+      console.error('Error fetching users from MySQL:', err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+here in the backend exist so the api url will be http://backend-service:5050/api
+
+location /api/ {
+    proxy_pass http://backend-service:5050; # call on http://backend-service:5050/api
+}
+
+
+paths:
+- path: /api
+  pathType: ImplementationSpecific
+  backend:
+    service:
+      name: backend
+      port:
+        number: 5050
+
+
+
+
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; # backend url 
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+export const fetchMySQLUsers = () => {
+  return api.get('/api/mysql/users');
+};
+
+and if exist in frontend and no exist in the backend then we use / to rewrite the url like 
+
+location /api/ {
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+}
+
+backend code
+ app.get('/mysql/users', async (req, res) => {
+    try {
+      const [rows] = await mysqlPool.query('SELECT * FROM users');
+      res.json(rows);
+    } catch (err) {
+      console.error('Error fetching users from MySQL:', err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+the backend will go on http://backend-service:5050/api from frontend and then it will go as http://backend-service:5050/mysql to the backend without the api in the call and the ingress will be 
+
+paths:
+- path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
+  backend:
+    service:
+      name: backend
+      port:
+        number: 5050
+
+the frontend url for backend will be http://backend-service:5050/api but the calls will go the backend without api in it http://backend-service:5050/
