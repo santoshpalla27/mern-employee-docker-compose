@@ -387,3 +387,60 @@ Static React/Angular build
 → it doesn't matter, because the browser only talks to http://domain.com/api/..., and NGINX internally talks to http://backend-service:5050.
 
 The static frontend doesn't need access to backend-service — NGINX handles the internal routing for API calls.
+
+
+
+example in terms of code 
+
+this is a frontend end code which expects base url to be http://ip:5000 or http://domain/api so the ingress will be 
+
+paths:
+- path: /api(/|$)(.*)
+  pathType: ImplementationSpecific
+  backend:
+    service:
+      name: backend
+      port:
+        number: 5050
+
+which will direct the http://domain/api calls to http://domain and backend will http://domain/api/mysql/users
+
+nginx config will be 
+
+location /api/ {
+    proxy_pass http://backend-service:5050/; # for rewrite and call on http://backend-service:5050/
+}
+
+backend code
+ app.get('/api/mysql/users', async (req, res) => {
+    try {
+      const [rows] = await mysqlPool.query('SELECT * FROM users');
+      res.json(rows);
+    } catch (err) {
+      console.error('Error fetching users from MySQL:', err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+
+
+frontend code
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; # backend url 
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+export const fetchMySQLUsers = () => {
+  return api.get('/api/mysql/users');
+};
+
+
+because the backend code already has /api in its route so we cut in processing and if it does have /api in its backend and has in frontend then the url will be same without rewriting in nginx config and ingress
+
+
+in most cases they use /api but there can be cases where the /api will be different then the ingress and the nginx config will be same as what /api is changed with
