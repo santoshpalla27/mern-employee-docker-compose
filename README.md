@@ -78,7 +78,7 @@ docker build \
   -t my-frontend-app .
 
 
-        final verdict  -- for base url and api calls
+                                               final verdict
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; # backend url 
 
@@ -165,6 +165,7 @@ metadata:
   name: mysql-api-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
   - host: mysql.example.com
@@ -181,31 +182,29 @@ spec:
 
 the backend url for frontend will be http://backend-service:5050/api but the calls will go the backend without api in it http://backend-service:5050/
 
+if api is hardcoded in frontend then the url will be http://domain instead of http://domain/api
+
 ===============================
 in most cases they use /api but there can be cases where the /api will be different then the ingress and the nginx config will be same as what /api is changed with
 
 
 
 
-                                                last scenario if there is no prefix in either frontend and backend 
-
+            last scenario if there is no prefix in either frontend and backend 
 backend code 
 
-router.post("/", async (req, res) => {
-  try {
-    let newDocument = {
-      name: req.body.name,
-      position: req.body.position,
-      level: req.body.level,
-    };
-    let collection = await db.collection("records");
-    let result = await collection.insertOne(newDocument);
-    res.send(result).status(204);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error adding record");
-  }
+app.use(express.json());
+app.use("/record", records);
+
+// Health check endpoint (liveness probe)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
+
 
 
 fontend code
@@ -226,7 +225,7 @@ this expects http://domain or http://ip:port
 
 then we will use 
 
-location / {                                          # / to route all requests with /
+location /record {                                          # after / need to add the api using in the frontend 
         proxy_pass http://localhost:5050;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -239,14 +238,12 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: records-api-ingress
-  annotations:
-  #  nginx.ingress.kubernetes.io/rewrite-target: /$1            # this is not needed in this because it will rewrite there is no need to rewrite in this condition
 spec:
   rules:
   - host: records.example.com
     http:
       paths:
-      - path: /(.*)
+      - path: /record
         pathType: Prefix
         backend:
           service:
@@ -257,11 +254,14 @@ spec:
 
 separate domain with prefix for backend 
 
-=======
+this routes traffic to https://records.example.com/record
+
+==============================================================================
+
 
 Scenario 4: Frontend has no /api, but backend has /api
 
-location / {
+location /record {
     rewrite ^/(.*)$ /api/$1 break;
     proxy_pass http://backend-service:5050;
 }
@@ -277,6 +277,14 @@ Backend receives /api/record
 
 Ingress: Add prefix using nginx.ingress.kubernetes.io/rewrite-target
 
+⚠️ Don't Use Both Together
+If you're running an Ingress and also running NGINX behind it with rewrite logic, you may accidentally double-rewrite:
+
+Ingress rewrites /record → /api/record
+
+Then backend NGINX rewrites /api/record → /api/api/record (bad)
+
+✅ Use one or the other, based on where the rewrite needs to happen.
 
 
 apiVersion: networking.k8s.io/v1
@@ -284,19 +292,30 @@ kind: Ingress
 metadata:
   name: api-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /api/$1
+    nginx.ingress.kubernetes.io/rewrite-target: /api/record$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
   - host: records.example.com
     http:
       paths:
-      - path: /(.*)
-        pathType: Prefix
+      - path: /record(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: backend-service
             port:
               number: 80
+
+
+
+Expected Behavior:
+
+Requests to /record or /record/anything are rewritten to /api/anything and forwarded to backend-service.
+
+Requests to /api or /api/anything are forwarded directly to backend-service without modification.
+
+
 
 Incoming request: /record
 
@@ -500,7 +519,6 @@ will produce:
 
 https://santosh.website/record/{id}
 which matches your Ingress path /record correctly.
-
 
 
 
