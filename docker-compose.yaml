@@ -24,7 +24,7 @@ services:
     build: 
       context: ./mern/frontend
       args:
-        VITE_API_URL: http://3.94.123.243:5050/api
+        VITE_API_URL: http://3.94.123.243:5050
     ports:
       - "80:80"  
     networks:
