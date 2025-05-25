@@ -502,3 +502,25 @@ https://santosh.website/record/{id}
 which matches your Ingress path /record correctly.
 
 
+
+
+============================================================================
+
+                          this app 
+
+location /record {
+            proxy_pass http://3.94.123.243:5050;
+
+this will pass traffic to backend on /record 
+
+and backend will recive traffic on http://3.94.123.243:5050 and /record is hard coded
+
+
+
+to run this docker-compose edit the ip of machine in both nginx.conf file and docker-compose file vite url 
+
+and clone the repo and go to the root folder and run docker-compose up -d and docker ps -a to view the container 
+
+fontend will be available on port 80 
+
+backend will be aviable on port 5050 
