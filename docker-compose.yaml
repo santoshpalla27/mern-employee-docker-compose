@@ -2,30 +2,22 @@ services:
   backend:
     build: ./mern/backend
     ports:
-      - "5050:5050" 
+      - "5050:5050"
     networks:
       - mern_network
     environment:
       MONGO_URI: mongodb://mongodb:27017
     depends_on:
       - mongodb
-    healthcheck:
-      test: |
-        curl -f http://localhost:5050/ready &&
-        curl -f http://localhost:5050/health
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
 
 
   frontend:
-    build: 
+    build:
       context: ./mern/frontend
       args:
-        VITE_API_URL: http://3.94.123.243:5050
+        VITE_API_URL: ""
     ports:
-      - "80:80"  
+      - "80:80"
     networks:
         - mern_network
     healthcheck:
@@ -34,21 +26,20 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
-    
+
   mongodb:
-    image: mongo:latest  
+    image: mongo:latest
     ports:
-      - "27017:27017"  
+      - "27017:27017"
     networks:
       - mern_network
     volumes:
-      - mongo-data:/data/db  
+      - mongo-data:/data/db
 
 networks:
   mern_network:
-    driver: bridge 
+    driver: bridge
 
 volumes:
   mongo-data:
     driver: local  # Persist MongoDB data locally
-
