@@ -41,7 +41,8 @@
         networks:
           - name: mern_network
         volumes:
-          - source: mongo-data
+          - type: volume
+            source: mongo-data
             target: /data/db
 
     - name: Run Backend container
