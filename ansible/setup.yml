@@ -1,0 +1,69 @@
+---
+- name: Deploy MERN Stack using Docker
+  hosts: localhost
+  become: true
+  connection: local
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Ensure Docker service is started
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create Docker network
+      docker_network:
+        name: mern_network
+        state: present
+
+    - name: Create Docker volume for MongoDB
+      docker_volume:
+        name: mongo-data
+        state: present
+
+    - name: Run MongoDB container
+      docker_container:
+        name: mongodb
+        image: mongo:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "27017:27017"
+        networks:
+          - name: mern_network
+        volumes:
+          - source: mongo-data
+            target: /data/db
+
+    - name: Run Backend container
+      docker_container:
+        name: backend
+        image: santoshpalla27/mern:backend
+        state: started
+        restart_policy: always
+        published_ports:
+          - "5050:5050"
+        networks:
+          - name: mern_network
+        env:
+          MONGO_URI: mongodb://mongodb:27017
+
+    - name: Run Frontend container
+      docker_container:
+        name: frontend
+        image: santoshpalla27/mern:frontend
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:80"
+        networks:
+          - name: mern_network

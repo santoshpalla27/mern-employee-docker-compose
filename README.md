@@ -17,3 +17,5 @@ we update the nginx config to proxy pass the api requests to /record
 so because there is a empty string in env  it uses nginx for api calls 
 
 so the url will be http://ip/record
+
+
