@@ -54,7 +54,7 @@ resource "aws_iam_instance_profile" "ec2_secretsmanager_profile" {
 
 
 resource "aws_launch_template" "main-template" {
-  name_prefix   = "main-template"
+  name_prefix   = "main-template-"
   image_id      = var.ami_id
   instance_type = var.instance_type
   key_name = aws_key_pair.generated.key_name
