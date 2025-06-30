@@ -119,7 +119,7 @@ resource "aws_lb" "web_alb" {
     Name = "web-alb"
   }
 }
-
+# target group for the ALB for frontend
 resource "aws_lb_target_group" "frontend" {
   name = "main-target-group"
   port = 80
@@ -139,10 +139,41 @@ resource "aws_lb_target_group" "frontend" {
   }
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_target_group" "backend" {
+  name = "backend-target-group"
+  port = 5050
+  protocol = "HTTP"
+  vpc_id = aws_vpc.main.id
+
+  health_check {
+    enabled = true
+    interval = 30
+    path = "/health"  # Health check on your backend API endpoint
+    port = "5050"
+    protocol = "HTTP"
+    timeout = 5
+    healthy_threshold = 3
+    unhealthy_threshold = 3
+    matcher = "200-299"
+  }
+
+  tags = {
+    Name = "backend-target-group"
+  }
+}
+
+data "aws_acm_certificate" "existing" {
+  domain   = "santosh.website"  
+  statuses = ["ISSUED"]
+  most_recent = true
+}
+
+resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.web_alb.arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  certificate_arn = data.aws_acm_certificate.existing.arn
   
   default_action {
     type             = "forward"
@@ -150,6 +181,36 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_listener" "http_redirect" {
+  load_balancer_arn = aws_lb.web_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"  # Permanent redirect
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_api" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/record", "/record/*" , "/health"]
+    }
+  }
+}
 
 resource "aws_autoscaling_group" "main" {
   name = "main-asg"
@@ -160,7 +221,7 @@ resource "aws_autoscaling_group" "main" {
   health_check_type    = "EC2"
   health_check_grace_period = 300
   force_delete         = true
-  target_group_arns    = [aws_lb_target_group.frontend.arn]
+  target_group_arns    = [aws_lb_target_group.frontend.arn , aws_lb_target_group.backend.arn ]
 
   launch_template {
     id      = aws_launch_template.main-template.id
