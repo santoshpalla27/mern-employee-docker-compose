@@ -28,7 +28,7 @@
     - name: Run Backend container
       docker_container:
         name: backend
-        image: santoshpalla27/stqs:frontend
+        image: santoshpalla27/stqs:backend
         state: started
         restart_policy: always
         published_ports:
@@ -39,7 +39,7 @@
     - name: Run Frontend container
       docker_container:
         name: frontend
-        image: santoshpalla27/stqs:backend
+        image: santoshpalla27/stqs:frontend
         state: started
         restart_policy: always
         published_ports:
