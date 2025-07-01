@@ -8,7 +8,50 @@
       - group_vars/docker.yml
       
   tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Ensure Docker service is started
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
     - name: Login to DockerHub
       ansible.builtin.shell: |
         echo "{{ docker_password }}" | docker login -u "{{ docker_username }}" --password-stdin
       no_log: true
+
+    - name: Create Docker network
+      docker_network:
+        name: mern_network
+        state: present
+
+    - name: Run Backend container
+      docker_container:
+        name: backend
+        image: santoshpalla27/stqs:backend
+        state: started
+        restart_policy: always
+        published_ports:
+          - "6068:6068"
+        networks:
+          - name: mern_network
+
+    - name: Run Frontend container
+      docker_container:
+        name: frontend
+        image: santoshpalla27/stqs:frontend
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:80"
+        networks:
+          - name: mern_network
+
