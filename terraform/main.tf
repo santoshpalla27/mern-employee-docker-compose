@@ -318,46 +318,5 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu" {
   alarm_actions     = [aws_autoscaling_policy.scale_down.arn]
 }
 
-# resource "aws_instance" "jenkins" {
-#   ami = var.ami_id
-#   instance_type = var.jenkins_instance_type
-#   key_name = aws_key_pair.generated.key_name
-#   subnet_id  = aws_subnet.public[0].id
-#   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
-#   tags = merge(
-#     var.jenkins_instance_tags,
-#     {
-#       Name = "JenkinsInstance"
-#     }
-#   )
-#   user_data = <<-EOF
-#               #!/bin/bash
-#               set -e
-
-#               # Update package list
-#               sudo apt-get update
-
-#               # Install Java (Jenkins requires Java 17+)
-#               sudo apt-get install -y openjdk-17-jdk
-
-#               # Add the Jenkins Debian repository and key
-#               curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
-#                 /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-
-#               echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-#               https://pkg.jenkins.io/debian-stable binary/" | sudo tee \
-#               /etc/apt/sources.list.d/jenkins.list > /dev/null
-
-#               # Update and install Jenkins
-#               sudo apt-get update
-#               sudo apt-get install -y jenkins
-
-#               # Enable and start Jenkins
-#               sudo systemctl enable jenkins
-#               sudo systemctl start jenkins
-#               EOF
-
-# }
-
 
 
