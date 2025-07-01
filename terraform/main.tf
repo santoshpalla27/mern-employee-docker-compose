@@ -129,7 +129,7 @@ resource "aws_lb_target_group" "frontend" {
   health_check {
     enabled = true
     interval = 30
-    path = "/health"
+    path = "/"
     port = "80"
     protocol = "HTTP"
     timeout = 5
@@ -141,15 +141,15 @@ resource "aws_lb_target_group" "frontend" {
 
 resource "aws_lb_target_group" "backend" {
   name = "backend-target-group"
-  port = 5050
+  port = 6068
   protocol = "HTTP"
   vpc_id = aws_vpc.main.id
 
   health_check {
     enabled = true
     interval = 30
-    path = "/health"  # Health check on your backend API endpoint
-    port = "5050"
+    path = "/"  # Health check on your backend API endpoint
+    port = "6068"
     protocol = "HTTP"
     timeout = 5
     healthy_threshold = 3
@@ -205,9 +205,14 @@ resource "aws_lb_listener_rule" "backend_api" {
     target_group_arn = aws_lb_target_group.backend.arn
   }
 
+  # condition {
+  #   path_pattern {
+  #     values = ["/record", "/record/*" , "/health"]
+  #   }
+  # }
   condition {
-    path_pattern {
-      values = ["/record", "/record/*" , "/health"]
+    host_header {
+      values = ["backend.santosh.website"]
     }
   }
 }

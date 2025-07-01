@@ -25,43 +25,21 @@
         name: mern_network
         state: present
 
-    - name: Create Docker volume for MongoDB
-      docker_volume:
-        name: mongo-data
-        state: present
-
-    - name: Run MongoDB container
-      docker_container:
-        name: mongodb
-        image: mongo:latest
-        state: started
-        restart_policy: always
-        published_ports:
-          - "27017:27017"
-        networks:
-          - name: mern_network
-        volumes:
-          - type: volume
-            source: mongo-data
-            target: /data/db
-
     - name: Run Backend container
       docker_container:
         name: backend
-        image: santoshpalla27/mern:backend
+        image: santoshpalla27/stqs:frontend
         state: started
         restart_policy: always
         published_ports:
-          - "5050:5050"
+          - "6068:6068"
         networks:
           - name: mern_network
-        env:
-          MONGO_URI: mongodb://mongodb:27017
 
     - name: Run Frontend container
       docker_container:
         name: frontend
-        image: santoshpalla27/mern:frontend
+        image: santoshpalla27/stqs:backend
         state: started
         restart_policy: always
         published_ports:
