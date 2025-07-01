@@ -162,22 +162,42 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-data "aws_acm_certificate" "existing" {
-  domain   = "santosh.website"  
+data "aws_acm_certificate" "multi_domain_cert" {
+  domain   = "santosh.website"
   statuses = ["ISSUED"]
   most_recent = true
 }
+
+
+
 
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.web_alb.arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn = data.aws_acm_certificate.existing.arn
+  certificate_arn = data.aws_acm_certificate.multi_domain_cert.arn
   
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+ 
+ # for certificate 
+resource "aws_lb_listener_rule" "frontend_main" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 110
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+
+  condition {
+    host_header {
+      values = ["santosh.website"]
+    }
   }
 }
 
@@ -338,3 +358,6 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu" {
 #               EOF
 
 # }
+
+
+
