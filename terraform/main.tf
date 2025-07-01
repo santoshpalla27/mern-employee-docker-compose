@@ -57,7 +57,7 @@ resource "aws_launch_template" "main-template" {
   name_prefix   = "main-template-"
   image_id      = var.ami_id
   instance_type = var.instance_type
-  key_name = aws_key_pair.generated.key_name
+  key_name      = aws_key_pair.generated.key_name
 
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_secretsmanager_profile.name
@@ -85,20 +85,27 @@ resource "aws_launch_template" "main-template" {
               # Clone and run Ansible        # we can use the GitHub token to clone the repository
               git clone -b nginx-frontend "$GITHUB_TOKEN"
               cd mern-employee-docker-compose/ansible 
-              ansible-playbook setup.yml
+              # Store the vault password in a temporary file
+              echo "qs@ansible27" > /tmp/vault_pass.txt
+              chmod 600 /tmp/vault_pass.txt
+
+              # Run the playbook with the vault password file
+              ansible-playbook setup.yml --vault-password-file /tmp/vault_pass.txt
+              shred -u /tmp/vault_pass.txt # Securely delete the vault password file
+
               EOF
   )
 
 
   network_interfaces {
-    security_groups = [aws_security_group.ec2_sg.id]
+    security_groups             = [aws_security_group.ec2_sg.id]
     associate_public_ip_address = true
   }
 
   lifecycle {
     create_before_destroy = true
   }
-  
+
   tag_specifications {
     resource_type = "instance"
     tags = {
@@ -121,40 +128,40 @@ resource "aws_lb" "web_alb" {
 }
 # target group for the ALB for frontend
 resource "aws_lb_target_group" "frontend" {
-  name = "main-target-group"
-  port = 80
+  name     = "main-target-group"
+  port     = 80
   protocol = "HTTP"
-  vpc_id = aws_vpc.main.id
+  vpc_id   = aws_vpc.main.id
 
   health_check {
-    enabled = true
-    interval = 30
-    path = "/"
-    port = "80"
-    protocol = "HTTP"
-    timeout = 5
-    healthy_threshold = 3
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "80"
+    protocol            = "HTTP"
+    timeout             = 5
+    healthy_threshold   = 3
     unhealthy_threshold = 3
-    matcher =  "200-299"
+    matcher             = "200-299"
   }
 }
 
 resource "aws_lb_target_group" "backend" {
-  name = "backend-target-group"
-  port = 6068
+  name     = "backend-target-group"
+  port     = 6068
   protocol = "HTTP"
-  vpc_id = aws_vpc.main.id
+  vpc_id   = aws_vpc.main.id
 
   health_check {
-    enabled = true
-    interval = 30
-    path = "/"  # Health check on your backend API endpoint
-    port = "6068"
-    protocol = "HTTP"
-    timeout = 5
-    healthy_threshold = 3
+    enabled             = true
+    interval            = 30
+    path                = "/" # Health check on your backend API endpoint
+    port                = "6068"
+    protocol            = "HTTP"
+    timeout             = 5
+    healthy_threshold   = 3
     unhealthy_threshold = 3
-    matcher = "200-299"
+    matcher             = "200-299"
   }
 
   tags = {
@@ -163,8 +170,8 @@ resource "aws_lb_target_group" "backend" {
 }
 
 data "aws_acm_certificate" "multi_domain_cert" {
-  domain   = "santosh.website"
-  statuses = ["ISSUED"]
+  domain      = "santosh.website"
+  statuses    = ["ISSUED"]
   most_recent = true
 }
 
@@ -176,15 +183,15 @@ resource "aws_lb_listener" "https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn = data.aws_acm_certificate.multi_domain_cert.arn
-  
+  certificate_arn   = data.aws_acm_certificate.multi_domain_cert.arn
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend.arn
   }
 }
- 
- # for certificate 
+
+# for certificate 
 resource "aws_lb_listener_rule" "frontend_main" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 110
@@ -211,7 +218,7 @@ resource "aws_lb_listener" "http_redirect" {
     redirect {
       port        = "443"
       protocol    = "HTTPS"
-      status_code = "HTTP_301"  # Permanent redirect
+      status_code = "HTTP_301" # Permanent redirect
     }
   }
 }
@@ -238,15 +245,15 @@ resource "aws_lb_listener_rule" "backend_api" {
 }
 
 resource "aws_autoscaling_group" "main" {
-  name = "main-asg"
-  min_size             = 1
-  max_size             = 1
-  desired_capacity     = 1
-  vpc_zone_identifier  =  aws_subnet.public[*].id
-  health_check_type    = "EC2"
+  name                      = "main-asg"
+  min_size                  = 1
+  max_size                  = 2
+  desired_capacity          = 2
+  vpc_zone_identifier       = aws_subnet.public[*].id
+  health_check_type         = "EC2"
   health_check_grace_period = 300
-  force_delete         = true
-  target_group_arns    = [aws_lb_target_group.frontend.arn , aws_lb_target_group.backend.arn ]
+  force_delete              = true
+  target_group_arns         = [aws_lb_target_group.frontend.arn, aws_lb_target_group.backend.arn]
 
   launch_template {
     id      = aws_launch_template.main-template.id
@@ -279,7 +286,7 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   namespace           = "AWS/EC2"
   period              = 120
   statistic           = "Average"
-  threshold           = 70  
+  threshold           = 70
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.main.name

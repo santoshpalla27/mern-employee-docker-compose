@@ -3,23 +3,23 @@ variable "aws_region" {
 }
 
 variable "vpc_name" {
-  type    = string
+  type        = string
   description = "Name of the VPC"
-  default = "main"
+  default     = "main"
 }
 
 variable "vpc_tags" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
 variable "public_Subnet_tags" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
 variable "public_route_table_tags" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
@@ -40,6 +40,6 @@ variable "jenkins_instance_tags" {
   default = {
     Name = ""
   }
-  
+
 }
 
