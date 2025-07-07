@@ -135,13 +135,13 @@ resource "aws_lb_target_group" "frontend" {
 
   health_check {
     enabled             = true
-    interval            = 30
+    interval            = 10
     path                = "/"
     port                = "80"
     protocol            = "HTTP"
     timeout             = 5
     healthy_threshold   = 3
-    unhealthy_threshold = 3
+    unhealthy_threshold = 2
     matcher             = "200-299"
   }
 }
@@ -154,13 +154,13 @@ resource "aws_lb_target_group" "backend" {
 
   health_check {
     enabled             = true
-    interval            = 30
+    interval            = 10
     path                = "/" # Health check on your backend API endpoint
     port                = "6068"
     protocol            = "HTTP"
     timeout             = 5
     healthy_threshold   = 3
-    unhealthy_threshold = 3
+    unhealthy_threshold = 2
     matcher             = "200-299"
   }
 
@@ -247,17 +247,40 @@ resource "aws_lb_listener_rule" "backend_api" {
 resource "aws_autoscaling_group" "main" {
   name                      = "main-asg"
   min_size                  = 1
-  max_size                  = 2
-  desired_capacity          = 2
+  max_size                  = 6
+  desired_capacity          = 4
   vpc_zone_identifier       = aws_subnet.public[*].id
   health_check_type         = "EC2"
   health_check_grace_period = 300
   force_delete              = true
   target_group_arns         = [aws_lb_target_group.frontend.arn, aws_lb_target_group.backend.arn]
 
-  launch_template {
-    id      = aws_launch_template.main-template.id
-    version = "$Latest"
+  mixed_instances_policy {
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.main-template.id
+        version             = "$Latest"
+      }
+
+      # Optional: override instance types (different from launch_template's default)
+      override {
+        instance_type = "t2.medium"
+      }
+
+      override {
+        instance_type = "t3.medium"
+      }
+
+      override {
+        instance_type = "t3a.medium"
+      }
+    }
+
+    instances_distribution {
+      on_demand_base_capacity                  = 1   # Start with 1 On-Demand
+      on_demand_percentage_above_base_capacity = 20   # 20% of instances will be On-Demand
+      spot_allocation_strategy                 = "capacity-optimized"  # or "lowest-price"
+    }
   }
 
   tag {
