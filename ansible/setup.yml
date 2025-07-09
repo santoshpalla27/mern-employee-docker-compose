@@ -5,7 +5,7 @@
   connection: local
   vars:
     vars_files:
-      - group_vars/docker.yml
+      - group_vars/all.yml
       
   tasks:
     - name: Update apt cache
@@ -54,4 +54,33 @@
           - "80:80"
         networks:
           - name: mern_network
+
+    - name: Run Node Exporter
+      docker_container:
+        name: node-exporter
+        image: prom/node-exporter:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "9100:9100"
+        networks:
+          - name: mern_network
+
+    - name: Run cAdvisor
+      docker_container:
+        name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "8080:8080"
+        volumes:
+          - "/:/rootfs:ro"
+          - "/var/run:/var/run:ro"
+          - "/sys:/sys:ro"
+          - "/var/lib/docker/:/var/lib/docker:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        networks:
+          - name: mern_network
+
 
