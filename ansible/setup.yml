@@ -55,16 +55,18 @@
         networks:
           - name: mern_network
 
-    - name: Run Node Exporter
+    - name: Run Node Exporter in host mode with host mounts
       docker_container:
         name: node-exporter
-        image: prom/node-exporter:latest
+        image: prom/node-exporter:v1.8.1
         state: started
         restart_policy: always
-        published_ports:
-          - "9100:9100"
-        networks:
-          - name: mern_network
+        command: "--path.rootfs=/host"
+        volumes:
+          - "/proc:/host/proc:ro"
+          - "/sys:/host/sys:ro"
+          - "/:/host:ro,rslave"
+        network_mode: host
 
     - name: Run cAdvisor
       docker_container:
